@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <functional>
+#include <sstream>
 #include <stdexcept>
 
 Expr::Const::Const(double val) : val(val) {}
@@ -284,4 +285,243 @@ std::string Expr::show() const {
 	std::string buf;
 	show_rec(buf);
 	return buf;
+}
+
+namespace {
+
+// Expression parsing using the precedence climbing method.
+
+enum class TokenType {
+	Ident,
+	Op,
+	LParen,
+	RParen,
+	Number,
+	Eof,
+};
+
+struct Token {
+	TokenType type;
+	std::string text;
+
+	std::string show() const;
+};
+
+std::string Token::show() const {
+	std::string out;
+	switch (type) {
+	case TokenType::Ident:
+		out = "identifier '" + text + "'";
+		break;
+	case TokenType::Op:
+		out = "operator '" + text + "'";
+		break;
+	case TokenType::LParen:
+		out = "left parenthesis";
+		break;
+	case TokenType::RParen:
+		out = "right parenthesis";
+		break;
+	case TokenType::Number:
+		out = "number '" + text + "'";
+		break;
+	case TokenType::Eof:
+		out = "eof";
+		break;
+	}
+	return out;
+}
+
+class Tokenizer {
+private:
+	static constexpr std::string_view operators = "+-*/";
+
+	std::string::const_iterator iter;
+	std::string::const_iterator end;
+	Token token;
+
+public:
+	Tokenizer(const std::string& input);
+
+private:
+	char get() const;
+	void consume();
+	void skip();
+	void read_ident();
+	void read_number();
+
+public:
+	void read();
+	const Token* operator->() const;
+};
+
+Tokenizer::Tokenizer(const std::string& input) :
+	iter(input.begin()),
+	end(input.end()) {}
+
+char Tokenizer::get() const {
+	return iter == end ? 0 : *iter;
+}
+
+void Tokenizer::consume() {
+	token.text.push_back(*iter);
+	++iter;
+}
+
+void Tokenizer::skip() {
+	++iter;
+}
+
+void Tokenizer::read_ident() {
+	token.type = TokenType::Ident;
+	consume();
+	while (std::isalnum(get()) || get() == '_' || get() == '.') {
+		consume();
+	}
+}
+
+void Tokenizer::read_number() {
+	token.type = TokenType::Number;
+	consume();
+	while (std::isdigit(get())) {
+		consume();
+	}
+	if (get() == '.') {
+		do {
+			consume();
+		} while (std::isdigit(get()));
+	}
+}
+
+void Tokenizer::read() {
+	token.text.clear();
+	while (std::isspace(get())) {
+		skip();
+	}
+	if (iter == end) {
+		token.type = TokenType::Eof;
+	}
+	else if (std::isalpha(get())) {
+		read_ident();
+	}
+	else if (operators.find(get()) != std::string_view::npos) {
+		token.type = TokenType::Op;
+		consume();
+	}
+	else if (get() == '(') {
+		token.type = TokenType::LParen;
+		consume();
+	}
+	else if (get() == ')') {
+		token.type = TokenType::RParen;
+		consume();
+	}
+	else if (std::isdigit(get())) {
+		read_number();
+	}
+	else {
+		std::ostringstream msg;
+		msg << "unrecognized symbol '" << get() << "'";
+		throw ParseError(msg.str());
+	}
+}
+
+const Token* Tokenizer::operator->() const {
+	return &token;
+}
+
+struct BinaryDef {
+	BinaryOp op;
+	int prec;
+	bool rassoc;
+};
+
+const std::unordered_map<std::string, BinaryDef> binary_ops = {
+	{"+", {BinaryOp::Add, 1, false}},
+	{"-", {BinaryOp::Sub, 1, false}},
+	{"*", {BinaryOp::Mul, 2, false}},
+	{"/", {BinaryOp::Div, 2, false}},
+};
+
+struct UnaryDef {
+	UnaryOp op;
+	int prec;
+};
+
+const std::unordered_map<std::string, UnaryDef> unary_ops = {
+	{"-", {UnaryOp::Neg, 2}},
+	{"sin", {UnaryOp::Sin, 2}},
+	{"cos", {UnaryOp::Cos, 2}},
+	{"ln", {UnaryOp::Ln, 2}},
+	{"exp", {UnaryOp::Exp, 2}},
+};
+
+Expr parse_expr(Tokenizer& tokens, int min_prec);
+
+Expr parse_atom(Tokenizer& tokens) {
+	if ((tokens->type == TokenType::Op || tokens->type == TokenType::Ident) &&
+			unary_ops.count(tokens->text))
+	{
+		auto op = unary_ops.at(tokens->text);
+		tokens.read();
+		auto expr = parse_expr(tokens, op.prec + 1);
+		return Expr(Unary(op.op, expr));
+	}
+	else if (tokens->type == TokenType::LParen) {
+		tokens.read();
+		auto expr = parse_expr(tokens, 1);
+		if (tokens->type != TokenType::RParen) {
+			std::ostringstream msg;
+			msg << "unexpected " << tokens->show()
+				<< ", expecting right parenthesis";
+			throw ParseError(msg.str());
+		}
+		tokens.read();
+		return expr;
+	}
+	else if (tokens->type == TokenType::Ident) {
+		auto x = Expr(Var(tokens->text));
+		tokens.read();
+		return x;
+	}
+	else if (tokens->type == TokenType::Number) {
+		auto x = Expr(Const(std::stod(tokens->text)));
+		tokens.read();
+		return x;
+	}
+	else {
+		std::ostringstream msg;
+		msg << "unexpected " << tokens->show()
+			<< ", expecting identifier, number, unary operator or parenthesized expression";
+		throw ParseError(msg.str());
+	}
+}
+
+Expr parse_expr(Tokenizer& tokens, int min_prec) {
+	auto lhs = parse_atom(tokens);
+	while (tokens->type == TokenType::Op &&
+			binary_ops.count(tokens->text) &&
+			binary_ops.at(tokens->text).prec >= min_prec)
+	{
+		auto op = binary_ops.at(tokens->text);
+		tokens.read();
+		auto rhs = parse_expr(tokens, op.rassoc ? op.prec : op.prec + 1);
+		lhs = Expr(Binary(op.op, lhs, rhs));
+	}
+	return lhs;
+}
+
+} // end anon
+
+Expr Expr::parse(const std::string& input) {
+	auto tokens = Tokenizer(input);
+	tokens.read();
+	auto expr = parse_expr(tokens, 1);
+	if (tokens->type != TokenType::Eof) {
+		std::ostringstream msg;
+		msg << "unexpected " << tokens->show()
+			<< ", expecting binary operator or eof";
+		throw ParseError(msg.str());
+	}
+	return expr;
 }

@@ -99,6 +99,10 @@ public:
 
 	// Returns a string representation of the expression.
 	std::string show() const;
+
+	// Parses an expression from string.
+	// On invalid input throws a ParseError.
+	static Expr parse(const std::string& input);
 };
 
 #endif // ROOTS_EXPR_H

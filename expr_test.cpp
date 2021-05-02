@@ -4,6 +4,8 @@
 
 #include "gtest/gtest.h"
 
+using namespace std::literals;
+
 TEST(ExprTest, Variables) {
 	auto expr = Expr("x") + 2*Expr("foo bar") / (13.0 + Expr("x")).cos() - (-Expr("z"));
 	Expr::Vars expected = {"x", "z", "foo bar"};
@@ -129,4 +131,46 @@ TEST(ExprTest, DiffEuler) {
 		{5.041, -13.3},
 	};
 	compare_diff(expr, fun, points);
+}
+
+TEST(ExprTest, ParseBinary) {
+	auto input = "1 + 2 * 3 - 4 / 5 / 6 - 2"s;
+	double expected = 1.0 + (2.0 * 3.0) - (4.0 / 5.0) / 6.0 - 2.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseUnary) {
+	auto input = "-2*2 - -sin(3 + cos 4) - exp ln 12 * -1"s;
+	double expected = -4.0 + std::sin(3.0 + std::cos(4)) + 12.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseWhitespace) {
+	auto input = "  1-2+3\t* 2\n\t  /2 \n"s;
+	double expected = 1.0 - 2.0 + 3.0 * 2.0 / 2.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseVariables) {
+	auto input = " xy / sin123 + x_1-a1b2 + x.2"s;
+	Expr::Vars expected = {"xy", "sin123", "x_1", "a1b2", "x.2"};
+	auto actual = Expr::parse(input).variables();
+	EXPECT_EQ(actual, expected) << "variables in " << input;
+}
+
+TEST(ExprTest, ParseNumbers) {
+	auto input = "0.75 + 0.0 + 12.34 - 10"s;
+	double expected = 0.75 + 12.34 - 10.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseParenthesis) {
+	auto input = " ( (1 + 3) * (((( 1 - 2 ) * 3)) - sin(((1)-2))) )"s;
+	double expected = (1.0 + 3.0) * (((1.0-2.0) * 3.0) - std::sin(1.0-2.0));
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
 }
