@@ -28,6 +28,7 @@ public:
 		Sub,
 		Mul,
 		Div,
+		Pow,
 	};
 
 	struct Binary {
@@ -44,6 +45,7 @@ public:
 		Cos,
 		Ln,
 		Exp,
+		Sqrt,
 	};
 
 	struct Unary {
@@ -68,12 +70,14 @@ public:
 	friend Expr operator-(Expr lhs, Expr rhs);
 	friend Expr operator*(Expr lhs, Expr rhs);
 	friend Expr operator/(Expr lhs, Expr rhs);
+	Expr pow(Expr rhs) const;
 
 	friend Expr operator-(Expr x);
 	Expr sin() const;
 	Expr cos() const;
 	Expr ln() const;
 	Expr exp() const;
+	Expr sqrt() const;
 
 	using Vars = std::unordered_set<std::string>;
 

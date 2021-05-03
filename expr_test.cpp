@@ -72,6 +72,22 @@ TEST(ExprTest, EvalEuler) {
 	compare_eval(expr, fun, points);
 }
 
+TEST(ExprTest, EvalPowerSqrt) {
+	auto expr = Expr("x").pow(2.0 * Expr("y")) + Expr("y").pow(-Expr("x")) * Expr("x").sqrt();
+	auto fun = [](double x, double y) {
+		return std::pow(x, 2*y) + std::pow(y, -x) * std::sqrt(x);
+	};
+	std::vector<std::pair<double, double>> points = {
+		{12.34, 10.0},
+		{4.0, -5.91},
+		{0.1, 3.19},
+		{391.39, 19.0},
+		{17.91, 23.39},
+		{0.0, 98.123},
+	};
+	compare_eval(expr, fun, points);
+}
+
 void compare_diff(
 		Expr expr,
 		const std::function<double(double, double)>& fun,
@@ -133,16 +149,60 @@ TEST(ExprTest, DiffEuler) {
 	compare_diff(expr, fun, points);
 }
 
-TEST(ExprTest, ParseBinary) {
-	auto input = "1 + 2 * 3 - 4 / 5 / 6 - 2"s;
-	double expected = 1.0 + (2.0 * 3.0) - (4.0 / 5.0) / 6.0 - 2.0;
+TEST(ExprTest, DiffPower) {
+	auto expr = Expr("x").pow((Expr("x") * Expr("y")).pow(2.0));
+	auto fun = [](double x, double y) {
+		return std::pow(x, std::pow(x*y, 2.0)) * (x*y*y) * (2*std::log(x) + 1);
+	};
+	std::vector<std::pair<double, double>> points = {
+		{0.5, 1.3},
+		{0.13, -10.0},
+		{5.3, 4.57},
+		{9.1, 0.0},
+		{11.3, -0.23},
+	};
+	compare_diff(expr, fun, points);
+}
+
+TEST(ExprTest, DiffSqrt) {
+	auto expr = (2.0 * Expr("x") * Expr("y")).sqrt();
+	auto fun = [](double x, double y) {
+		return y / std::sqrt(2*x*y);
+	};
+	std::vector<std::pair<double, double>> points = {
+		{13.42, 93.19},
+		{-0.13, -139.13},
+		{0.24, 0.58},
+		{1.14, 9.14},
+		{130.13, 0.13},
+	};
+	compare_diff(expr, fun, points);
+}
+
+TEST(ExprTest, ParseBinaryPrecedence) {
+	auto input = "1 + 2 * 3 ^ 4 / 5 - 6 / 3 * 2 ^ -1"s;
+	double expected = 1.0 + (2.0 * std::pow(3.0, 4.0) / 5.0) - (6.0 / 3.0 * std::pow(2.0, -1.0));
 	double actual = Expr::parse(input).eval({});
 	EXPECT_FLOAT_EQ(actual, expected) << input;
 }
 
-TEST(ExprTest, ParseUnary) {
-	auto input = "-2*2 - -sin(3 + cos 4) - exp ln 12 * -1"s;
-	double expected = -4.0 + std::sin(3.0 + std::cos(4)) + 12.0;
+TEST(ExprTest, ParseBinaryAssociativity) {
+	auto input = "1 - 2 - 2 ^ 3 ^ 2 / 4 / 2 - 2"s;
+	double expected = 1.0 - 2.0 - ((std::pow(2.0, std::pow(3.0, 2.0))) / 4.0 / 2.0) - 2.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseUnary1) {
+	auto input = "-2*2 - -sin(3 + cos 4) - exp ln 12 * -sqrt 13"s;
+	double expected = -4.0 + std::sin(3.0 + std::cos(4)) + (12.0 * std::sqrt(13));
+	double actual = Expr::parse(input).eval({});
+	EXPECT_FLOAT_EQ(actual, expected) << input;
+}
+
+TEST(ExprTest, ParseUnary2) {
+	auto input = "-2^2 + sin -1 + 2 - cos 3^-2 * 3"s;
+	double expected = -4.0 + std::sin(-1.0) + 2.0 - std::cos(std::pow(3.0, -2.0)) * 3.0;
 	double actual = Expr::parse(input).eval({});
 	EXPECT_FLOAT_EQ(actual, expected) << input;
 }

@@ -54,6 +54,10 @@ Expr operator/(Expr lhs, Expr rhs) {
 	return Expr(Binary(BinaryOp::Div, std::move(lhs), std::move(rhs)));
 }
 
+Expr Expr::pow(Expr rhs) const {
+	return Expr(Binary(BinaryOp::Pow, *this, std::move(rhs)));
+}
+
 Expr operator-(Expr x) {
 	return Expr(Unary(UnaryOp::Neg, std::move(x)));
 }
@@ -72,6 +76,10 @@ Expr Expr::ln() const {
 
 Expr Expr::exp() const {
 	return Expr(Unary(UnaryOp::Exp, *this));
+}
+
+Expr Expr::sqrt() const {
+	return Expr(Unary(UnaryOp::Sqrt, *this));
 }
 
 void Expr::variables_rec(Vars& vars) const {
@@ -99,77 +107,124 @@ Expr::Vars Expr::variables() const {
 namespace {
 
 struct Float {
-	double v;
+	double val;
 
 	Float();
-	Float(double v);
+	Float(double val);
+
+	Float pow(Float y) const;
 
 	Float sin() const;
 	Float cos() const;
 	Float ln() const;
 	Float exp() const;
+	Float sqrt() const;
 };
 
-Float::Float() : v(0) {}
-Float::Float(double v) : v(v) {}
+Float::Float() : val(0) {}
+Float::Float(double val) : val(val) {}
 
-Float operator+(Float x, Float y) { return Float(x.v + y.v); }
-Float operator-(Float x, Float y) { return Float(x.v - y.v); }
-Float operator*(Float x, Float y) { return Float(x.v * y.v); }
-Float operator/(Float x, Float y) { return Float(x.v / y.v); }
+Float operator+(Float x, Float y) { return Float(x.val + y.val); }
+Float operator-(Float x, Float y) { return Float(x.val - y.val); }
+Float operator*(Float x, Float y) { return Float(x.val * y.val); }
+Float operator/(Float x, Float y) { return Float(x.val / y.val); }
+Float Float::pow(Float y) const { return Float(std::pow(val, y.val)); }
 
-Float operator-(Float x) { return Float(-x.v); }
-Float Float::sin() const { return Float(std::sin(v)); }
-Float Float::cos() const { return Float(std::cos(v)); }
-Float Float::ln() const { return Float(std::log(v)); }
-Float Float::exp() const { return Float(std::exp(v)); }
+Float operator-(Float x) { return Float(-x.val); }
+Float Float::sin() const { return Float(std::sin(val)); }
+Float Float::cos() const { return Float(std::cos(val)); }
+Float Float::ln() const { return Float(std::log(val)); }
+Float Float::exp() const { return Float(std::exp(val)); }
+Float Float::sqrt() const { return Float(std::sqrt(val)); }
 
-// Dual numbers for forward mode automatic differentiation.
+// Dual number for forward mode automatic differentiation.
+// It contains a value (val), its derivative (deriv) and a boolean flag (cons)
+// indicating whether the number is a constant or not.
 struct Dual {
-	double v;
-	double dv;
+	double val;
+	double deriv;
+	bool cons;
 
 	Dual();
-	Dual(double c);
-	Dual(double v, double dv);
+	Dual(double val);
+	Dual(double val, double deriv, bool cons);
+
+	Dual pow(Dual y) const;
 
 	Dual sin() const;
 	Dual cos() const;
 	Dual ln() const;
 	Dual exp() const;
+	Dual sqrt() const;
 };
 
-Dual::Dual() : v(0.0), dv(0.0) {}
-Dual::Dual(double c) : v(c), dv(0.0) {}
-Dual::Dual(double v, double dv) : v(v), dv(dv) {}
+Dual::Dual() : Dual(0.0, 0.0, true) {}
+Dual::Dual(double val) : Dual(val, 0.0, true) {}
+Dual::Dual(double val, double deriv, bool cons) : val(val), deriv(deriv), cons(cons) {}
 
 Dual operator+(Dual x, Dual y) {
-	return Dual(x.v + y.v, x.dv + y.dv);
+	return Dual(x.val + y.val, x.deriv + y.deriv, x.cons && y.cons);
 }
+
 Dual operator-(Dual x, Dual y) {
-	return Dual(x.v - y.v, x.dv - y.dv);
+	return Dual(x.val - y.val, x.deriv - y.deriv, x.cons && y.cons);
 }
+
 Dual operator*(Dual x, Dual y) {
-	return Dual(x.v * y.v, (x.dv * y.v) + (x.v * y.dv));
+	return Dual(x.val * y.val,
+			(x.deriv * y.val) + (x.val * y.deriv),
+			x.cons && y.cons);
 }
+
 Dual operator/(Dual x, Dual y) {
-	return Dual(x.v / y.v, ((x.dv * y.v) - (x.v * y.dv)) / (y.v * y.v));
+	return Dual(x.val / y.val,
+			((x.deriv * y.val) - (x.val * y.deriv)) / (y.val * y.val),
+			x.cons && y.cons);
+}
+
+Dual Dual::pow(Dual y) const {
+	auto x = *this;
+	double out;
+	if (y.cons) {
+		// For constant exponents we use the basic (x^k)' = k * x^(k-1) formula
+		// with an exception for k = 1.
+		if (y.val == 1.0) {
+			out = 1.0;
+		}
+		else {
+			out = y.val * std::pow(x.val, y.val - 1.0) * x.deriv;
+		}
+	}
+	else {
+		// For functional exponents we use the generalized power rule.
+		out = std::pow(x.val, y.val) *
+			(y.deriv * std::log(x.val) + (x.deriv * y.val) / x.val);
+	}
+	return Dual(std::pow(x.val, y.val), out, x.cons && y.cons);
 }
 
 Dual operator-(Dual x) {
-	return Dual(-x.v, -x.dv);
+	return Dual(-x.val, -x.deriv, x.cons);
 }
+
 Dual Dual::sin() const {
-	return Dual(std::sin(v), std::cos(v) * dv);
+	return Dual(std::sin(val), std::cos(val) * deriv, cons);
 }
+
 Dual Dual::cos() const {
-	return Dual(std::cos(v), -std::sin(v) * dv);
+	return Dual(std::cos(val), -std::sin(val) * deriv, cons);
 }
+
 Dual Dual::ln() const {
-	return Dual(std::log(v), dv / v);
+	return Dual(std::log(val), deriv / val, cons);
 }
+
 Dual Dual::exp() const {
-	return Dual(std::exp(v), std::exp(v) * dv);
+	return Dual(std::exp(val), std::exp(val) * deriv, cons);
+}
+
+Dual Dual::sqrt() const {
+	return Dual(std::sqrt(val), deriv / (2 * std::sqrt(val)), cons);
 }
 
 template<typename Num>
@@ -190,6 +245,7 @@ Num eval_rec(const Expr& expr, const std::function<Num(const std::string&)>& see
 			case BinaryOp::Sub: out = lhs - rhs; break;
 			case BinaryOp::Mul: out = lhs * rhs; break;
 			case BinaryOp::Div: out = lhs / rhs; break;
+			case BinaryOp::Pow: out = lhs.pow(rhs); break;
 			}
 			return out;
 		},
@@ -197,11 +253,12 @@ Num eval_rec(const Expr& expr, const std::function<Num(const std::string&)>& see
 			auto arg = eval_rec(*un.arg, seed);
 			Num out;
 			switch (un.type) {
-			case UnaryOp::Neg: out = -arg; break;
-			case UnaryOp::Sin: out = arg.sin(); break;
-			case UnaryOp::Cos: out = arg.cos(); break;
-			case UnaryOp::Ln:  out = arg.ln(); break;
-			case UnaryOp::Exp: out = arg.exp(); break;
+			case UnaryOp::Neg:  out = -arg; break;
+			case UnaryOp::Sin:  out = arg.sin(); break;
+			case UnaryOp::Cos:  out = arg.cos(); break;
+			case UnaryOp::Ln:   out = arg.ln(); break;
+			case UnaryOp::Exp:  out = arg.exp(); break;
+			case UnaryOp::Sqrt: out = arg.sqrt(); break;
 			}
 			return out;
 		},
@@ -218,7 +275,7 @@ double Expr::eval(const Env& env) const {
 		}
 		return Float(it->second);
 	});
-	return out.v;
+	return out.val;
 }
 
 double Expr::diff(const std::string& x, const Env& env) const {
@@ -228,10 +285,14 @@ double Expr::diff(const std::string& x, const Env& env) const {
 			throw std::domain_error("undefined variable " + var);
 		}
 		auto v = it->second;
-		auto dv = var == x ? 1.0 : 0.0;
-		return Dual(v, dv);
+		if (var == x) {
+			return Dual(v, 1.0, false);
+		}
+		else {
+			return Dual(v, 0.0, true);
+		}
 	});
-	return out.dv;
+	return out.deriv;
 }
 
 void Expr::show_rec(std::string& buf) const {
@@ -251,6 +312,7 @@ void Expr::show_rec(std::string& buf) const {
 			case BinaryOp::Sub: op = "-"; break;
 			case BinaryOp::Mul: op = "*"; break;
 			case BinaryOp::Div: op = "/"; break;
+			case BinaryOp::Pow: op = "^"; break;
 			}
 			buf.append(" ");
 			buf.append(op);
@@ -261,11 +323,12 @@ void Expr::show_rec(std::string& buf) const {
 		[&](const Unary& un) {
 			std::string op;
 			switch (un.type) {
-			case UnaryOp::Neg: op = "-"; break;
-			case UnaryOp::Sin: op = "sin"; break;
-			case UnaryOp::Cos: op = "cos"; break;
-			case UnaryOp::Ln:  op = "ln"; break;
-			case UnaryOp::Exp: op = "exp"; break;
+			case UnaryOp::Neg:  op = "-"; break;
+			case UnaryOp::Sin:  op = "sin"; break;
+			case UnaryOp::Cos:  op = "cos"; break;
+			case UnaryOp::Ln:   op = "ln"; break;
+			case UnaryOp::Exp:  op = "exp"; break;
+			case UnaryOp::Sqrt: op = "sqrt"; break;
 			}
 			if (std::isalpha(op[0])) {
 				buf.append(op);
@@ -334,7 +397,7 @@ std::string Token::show() const {
 
 class Tokenizer {
 private:
-	static constexpr std::string_view operators = "+-*/";
+	static constexpr std::string_view operators = "+-*/^";
 
 	std::string::const_iterator iter;
 	std::string::const_iterator end;
@@ -441,6 +504,7 @@ const std::unordered_map<std::string, BinaryDef> binary_ops = {
 	{"-", {BinaryOp::Sub, 1, false}},
 	{"*", {BinaryOp::Mul, 2, false}},
 	{"/", {BinaryOp::Div, 2, false}},
+	{"^", {BinaryOp::Pow, 3, true}},
 };
 
 struct UnaryDef {
@@ -454,6 +518,7 @@ const std::unordered_map<std::string, UnaryDef> unary_ops = {
 	{"cos", {UnaryOp::Cos, 2}},
 	{"ln", {UnaryOp::Ln, 2}},
 	{"exp", {UnaryOp::Exp, 2}},
+	{"sqrt", {UnaryOp::Sqrt, 2}},
 };
 
 Expr parse_expr(Tokenizer& tokens, int min_prec);
