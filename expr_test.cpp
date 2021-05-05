@@ -23,7 +23,7 @@ void compare_eval(
 		auto y = p.second;
 		auto actual = expr.eval({{"x", x}, {"y", y}});
 		auto expected = fun(x, y);
-		EXPECT_FLOAT_EQ(actual, expected) << "evaluating at x = " << x << ", y = " << y;
+		EXPECT_DOUBLE_EQ(actual, expected) << "evaluating at x = " << x << ", y = " << y;
 	}
 }
 
@@ -98,7 +98,7 @@ void compare_diff(
 		auto y = p.second;
 		auto actual = expr.diff("x", {{"x", x}, {"y", y}});
 		auto expected = fun(x, y);
-		EXPECT_FLOAT_EQ(actual, expected) << "differentiating over x at x = " << x << ", y = " << y;
+		EXPECT_DOUBLE_EQ(actual, expected) << "differentiating over x at x = " << x << ", y = " << y;
 	}
 }
 
@@ -183,35 +183,35 @@ TEST(ExprTest, ParseBinaryPrecedence) {
 	auto input = "1 + 2 * 3 ^ 4 / 5 - 6 / 3 * 2 ^ -1"s;
 	double expected = 1.0 + (2.0 * std::pow(3.0, 4.0) / 5.0) - (6.0 / 3.0 * std::pow(2.0, -1.0));
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseBinaryAssociativity) {
 	auto input = "1 - 2 - 2 ^ 3 ^ 2 / 4 / 2 - 2"s;
 	double expected = 1.0 - 2.0 - ((std::pow(2.0, std::pow(3.0, 2.0))) / 4.0 / 2.0) - 2.0;
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseUnary1) {
 	auto input = "-2*2 - -sin(3 + cos 4) - exp ln 12 * -sqrt 13"s;
 	double expected = -4.0 + std::sin(3.0 + std::cos(4)) + (12.0 * std::sqrt(13));
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseUnary2) {
 	auto input = "-2^2 + sin -1 + 2 - cos 3^-2 * 3"s;
 	double expected = -4.0 + std::sin(-1.0) + 2.0 - std::cos(std::pow(3.0, -2.0)) * 3.0;
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseWhitespace) {
 	auto input = "  1-2+3\t* 2\n\t  /2 \n"s;
 	double expected = 1.0 - 2.0 + 3.0 * 2.0 / 2.0;
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseVariables) {
@@ -225,12 +225,12 @@ TEST(ExprTest, ParseNumbers) {
 	auto input = "0.75 + 0.0 + 12.34 - 10"s;
 	double expected = 0.75 + 12.34 - 10.0;
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
 TEST(ExprTest, ParseParenthesis) {
 	auto input = " ( (1 + 3) * (((( 1 - 2 ) * 3)) - sin(((1)-2))) )"s;
 	double expected = (1.0 + 3.0) * (((1.0-2.0) * 3.0) - std::sin(1.0-2.0));
 	double actual = Expr::parse(input).eval({});
-	EXPECT_FLOAT_EQ(actual, expected) << input;
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
