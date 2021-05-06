@@ -214,6 +214,13 @@ TEST(ExprTest, ParseFunction) {
 	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
+TEST(ExprTest, ParseEquation) {
+	auto input = "1 - 3 = 5 - 10 + 3"s;
+	double expected = 0.0;
+	double actual = Expr::parse(input).eval({});
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
+}
+
 TEST(ExprTest, ParseWhitespace) {
 	auto input = "  1-2+3\t* 2\n\t  /2 \n"s;
 	double expected = 1.0 - 2.0 + 3.0 * 2.0 / 2.0;

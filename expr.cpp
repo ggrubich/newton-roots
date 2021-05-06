@@ -397,7 +397,7 @@ std::string Token::show() const {
 
 class Tokenizer {
 private:
-	static constexpr std::string_view operators = "+-*/^";
+	static constexpr std::string_view operators = "=+-*/^";
 
 	std::string::const_iterator iter;
 	std::string::const_iterator end;
@@ -500,6 +500,9 @@ struct BinaryDef {
 };
 
 const std::unordered_map<std::string, BinaryDef> binary_ops = {
+	// We treat "=" as a low precedence subtraction. This is a bit of a hack,
+	// but it should be okay for our purposes.
+	{"=", {BinaryOp::Sub, 0, false}},
 	{"+", {BinaryOp::Add, 1, false}},
 	{"-", {BinaryOp::Sub, 1, false}},
 	{"*", {BinaryOp::Mul, 2, false}},
@@ -523,7 +526,7 @@ const std::unordered_map<std::string, UnaryDef> unary_ops = {
 	{"sqrt", {UnaryOp::Sqrt, 2, true}},
 };
 
-Expr parse_expr(Tokenizer& tokens, int min_prec);
+Expr parse_expr(Tokenizer& tokens, int min_prec = 0);
 
 Expr parse_atom(Tokenizer& tokens) {
 	if ((tokens->type == TokenType::Op || tokens->type == TokenType::Ident) &&
@@ -544,7 +547,7 @@ Expr parse_atom(Tokenizer& tokens) {
 	}
 	else if (tokens->type == TokenType::LParen) {
 		tokens.read();
-		auto expr = parse_expr(tokens, 1);
+		auto expr = parse_expr(tokens);
 		if (tokens->type != TokenType::RParen) {
 			std::ostringstream msg;
 			msg << "unexpected " << tokens->show()
@@ -591,7 +594,7 @@ Expr parse_expr(Tokenizer& tokens, int min_prec) {
 Expr Expr::parse(const std::string& input) {
 	auto tokens = Tokenizer(input);
 	tokens.read();
-	auto expr = parse_expr(tokens, 1);
+	auto expr = parse_expr(tokens);
 	if (tokens->type != TokenType::Eof) {
 		std::ostringstream msg;
 		msg << "unexpected " << tokens->show()
