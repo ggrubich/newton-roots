@@ -207,6 +207,13 @@ TEST(ExprTest, ParseUnary2) {
 	EXPECT_DOUBLE_EQ(actual, expected) << input;
 }
 
+TEST(ExprTest, ParseFunction) {
+	auto input = "-(-1)^2 * exp(1)^2"s;
+	double expected = -1.0 * std::pow(std::exp(1.0), 2.0);
+	double actual = Expr::parse(input).eval({});
+	EXPECT_DOUBLE_EQ(actual, expected) << input;
+}
+
 TEST(ExprTest, ParseWhitespace) {
 	auto input = "  1-2+3\t* 2\n\t  /2 \n"s;
 	double expected = 1.0 - 2.0 + 3.0 * 2.0 / 2.0;

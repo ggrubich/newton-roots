@@ -510,15 +510,17 @@ const std::unordered_map<std::string, BinaryDef> binary_ops = {
 struct UnaryDef {
 	UnaryOp op;
 	int prec;
+	// True if the operator can be a part of a parenthesized function call.
+	bool funcall;
 };
 
 const std::unordered_map<std::string, UnaryDef> unary_ops = {
-	{"-", {UnaryOp::Neg, 2}},
-	{"sin", {UnaryOp::Sin, 2}},
-	{"cos", {UnaryOp::Cos, 2}},
-	{"ln", {UnaryOp::Ln, 2}},
-	{"exp", {UnaryOp::Exp, 2}},
-	{"sqrt", {UnaryOp::Sqrt, 2}},
+	{"-",    {UnaryOp::Neg,  2, false}},
+	{"sin",  {UnaryOp::Sin,  2, true}},
+	{"cos",  {UnaryOp::Cos,  2, true}},
+	{"ln",   {UnaryOp::Ln,   2, true}},
+	{"exp",  {UnaryOp::Exp,  2, true}},
+	{"sqrt", {UnaryOp::Sqrt, 2, true}},
 };
 
 Expr parse_expr(Tokenizer& tokens, int min_prec);
@@ -529,7 +531,15 @@ Expr parse_atom(Tokenizer& tokens) {
 	{
 		auto op = unary_ops.at(tokens->text);
 		tokens.read();
-		auto expr = parse_expr(tokens, op.prec + 1);
+		Expr expr;
+		// Parenthesized function calls get the highest precedence.
+		// Other operators get treated according to their own precedence.
+		if (op.funcall && tokens->type == TokenType::LParen) {
+			expr = parse_atom(tokens);
+		}
+		else {
+			expr = parse_expr(tokens, op.prec + 1);
+		}
 		return Expr(Unary(op.op, expr));
 	}
 	else if (tokens->type == TokenType::LParen) {
