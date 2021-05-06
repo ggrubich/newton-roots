@@ -17,6 +17,13 @@ private:
 public:
 	// Initializes a zero matrix with given dimensions.
 	Matrix(size_t height, size_t width);
+
+	// Initializes a matrix from the given seed.
+	// Seed is a callable with signature equivalent to:
+	//   double seed(size_t row, size_t col)
+	template<typename Seed>
+	Matrix(size_t height, size_t width, const Seed& seed);
+
 	// Initializes a literal matrix.
 	Matrix(std::initializer_list<std::initializer_list<double>> init);
 
@@ -40,6 +47,15 @@ public:
 	// Returns the string representation of the matrix.
 	std::string show() const;
 };
+
+template<typename Seed>
+Matrix::Matrix(size_t height, size_t width, const Seed& seed) : Matrix(height, width) {
+	for (size_t i = 0; i < height; ++i) {
+		for (size_t j = 0; j < width; ++j) {
+			(*this)[{i, j}] = seed(i, j);
+		}
+	}
+}
 
 template<typename Op>
 Matrix Matrix::apply(const Op& op, const Matrix& rhs) const {

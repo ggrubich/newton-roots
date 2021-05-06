@@ -1,7 +1,7 @@
 project('roots', 'cpp',
   default_options : ['cpp_std=c++17', 'cpp_args=-pedantic -Wall'])
 
-sources = ['expr.cpp', 'matrix.cpp']
+sources = ['expr.cpp', 'matrix.cpp', 'solve.cpp']
 executable('roots', sources + ['main.cpp'])
 
 gtest_proj = subproject('gtest')
@@ -12,3 +12,5 @@ expr_test = executable('expr_test', sources + ['expr_test.cpp'], dependencies: g
 test('expr test', expr_test)
 matrix_test = executable('matrix_test', sources + ['matrix_test.cpp'], dependencies: gtest_dep)
 test('matrix test', matrix_test)
+solve_test = executable('solve_test', sources + ['solve_test.cpp'], dependencies: gtest_dep)
+test('solve test', solve_test)
