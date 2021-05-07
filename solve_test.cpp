@@ -1,34 +1,46 @@
 #include "solve.h"
 
+#include "common.h"
+
 #include <cmath>
 
 #include "gtest/gtest.h"
 
-void expect_solution_eq(const std::vector<Binding>& actual,
+void expect_solution_eq(const Solution& actual,
 		const std::vector<Binding>& expected)
 {
-	ASSERT_EQ(actual.size(), expected.size()) << "solution length";
-	for (size_t i = 0; i < actual.size(); ++i) {
-		ASSERT_EQ(actual[i].first, expected[i].first) << "solution variable at " << i;
-		EXPECT_DOUBLE_EQ(actual[i].second, expected[i].second) << "variable " << actual[i].first;
+	ASSERT_EQ(actual.vars.size(), expected.size()) << "solution length";
+	for (size_t i = 0; i < actual.vars.size(); ++i) {
+		const auto& actual_ = actual.vars[i];
+		const auto& expected_ = expected[i];
+		ASSERT_EQ(actual_.first, expected_.first)
+			<< "variable at " << i;
+		EXPECT_DOUBLE_EQ(actual_.second, expected_.second)
+			<< "value of " << actual_.first;
 	}
 }
 
-void expect_solution_near(const std::vector<Binding>& actual,
+void expect_solution_near(const Solution& actual,
 		const std::vector<Binding>& expected,
 		double error)
 {
-	ASSERT_EQ(actual.size(), expected.size()) << "solution length";
-	for (size_t i = 0; i < actual.size(); ++i) {
-		ASSERT_EQ(actual[i].first, expected[i].first) << "solution variable at " << i;
-		EXPECT_NEAR(actual[i].second, expected[i].second, error) << "variable " << actual[i].first;
+	ASSERT_EQ(actual.vars.size(), expected.size()) << "solution length";
+	for (size_t i = 0; i < actual.vars.size(); ++i) {
+		const auto& actual_ = actual.vars[i];
+		const auto& expected_ = expected[i];
+		ASSERT_EQ(actual_.first, expected_.first)
+			<< "variable at " << i;
+		EXPECT_NEAR(actual_.second, expected_.second, error)
+			<< "value of  " << actual_.first;
 	}
 }
+
+const Constraints default_constr;
 
 TEST(SolveTest, Sqrt) {
 	std::vector<Expr> funcs = {Expr::parse("x^2 - 13.11")};
 	std::vector<Binding> expected = {{"x", std::sqrt(13.11)}};
-	auto actual = solve(funcs, {{"x", 123.0}}, 20);
+	auto actual = solve(funcs, {{"x", 123.0}}, default_constr);
 	expect_solution_eq(actual, expected);
 }
 
@@ -38,7 +50,7 @@ TEST(SolveTest, Linear2) {
 		Expr::parse("3*x + y - 9"),
 	};
 	std::vector<Binding> expected = {{"x", 2.0}, {"y", 3.0}};
-	auto actual = solve(funcs, {{"x", 60}, {"y", -123}}, 10);
+	auto actual = solve(funcs, {{"x", 60}, {"y", -123}}, default_constr);
 	expect_solution_eq(actual, expected);
 }
 
@@ -55,7 +67,9 @@ TEST(SolveTest, Linear4) {
 		{"a2", 5},
 		{"a3", 1},
 	};
-	auto actual = solve(funcs, {{"a0", 40}, {"a1", 0}, {"a2", -10}, {"a3", 100}}, 10);
+	auto actual = solve(funcs,
+		{{"a0", 40}, {"a1", 0}, {"a2", -10}, {"a3", 100}},
+		default_constr);
 	expect_solution_eq(actual, expected);
 }
 
@@ -71,7 +85,7 @@ TEST(SolveTest, CircleLine) {
 		{"x", (6.0 + std::sqrt(71.0)) / 5.0},
 		{"y", (2*std::sqrt(71) - 3.0) / 5.0},
 	};
-	auto actual = solve(funcs, {{"x", 100}, {"y", 130}}, 50);
+	auto actual = solve(funcs, {{"x", 100}, {"y", 130}}, default_constr);
 	expect_solution_eq(actual, expected);
 }
 
@@ -84,7 +98,7 @@ TEST(SolveTest, Exponents) {
 		{"x",  1.30294},
 		{"y", -0.90288},
 	};
-	auto actual = solve(funcs, {{"x", 1}, {"y", -1}}, 50);
+	auto actual = solve(funcs, {{"x", 1}, {"y", -1}}, default_constr);
 	expect_solution_near(actual, expected, 0.000005);
 }
 
@@ -94,7 +108,7 @@ TEST(SolveTest, Nonlinear2) {
 		Expr::parse("x^3 + x^2 - 14*x - y - 19"),
 	};
 	std::vector<Binding> expected {{"x", 4.0}, {"y", 5.0}};
-	auto actual = solve(funcs, {{"x", 8}, {"y", 10}}, 20);
+	auto actual = solve(funcs, {{"x", 8}, {"y", 10}}, default_constr);
 	expect_solution_eq(actual, expected);
 }
 
@@ -105,6 +119,14 @@ TEST(SolveTest, Nonlinear3) {
 		Expr::parse("2*y - x*z - 1"),
 	};
 	std::vector<Binding> expected {{"x", 4.0}, {"y", 5.0}, {"z", 9.0/4.0}};
-	auto actual = solve(funcs, {{"x", 20}, {"y", 5}, {"z", 0}}, 20);
+	auto actual = solve(funcs, {{"x", 20}, {"y", 5}, {"z", 0}}, default_constr);
 	expect_solution_eq(actual, expected);
+}
+
+TEST(SolveTest, Failure) {
+	std::vector<Expr> funcs = {
+		Expr::parse("y = x - 3"),
+		Expr::parse("y = x^2"),
+	};
+	EXPECT_THROW(solve(funcs, {{"x", 1}, {"y", 1}}, default_constr), MathError);
 }
