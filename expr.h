@@ -91,10 +91,12 @@ public:
 	using Env = std::unordered_map<std::string, double>;
 
 	// Evaluates the expression in the given environment.
+	// Throws MathError on failure.
 	double eval(const Env& env) const;
 
 	// Partially differentiates the expresstion in relation to given variable x
 	// in the given environment.
+	// Throws MathError on failure.
 	double diff(const std::string& x, const Env& env) const;
 
 private:

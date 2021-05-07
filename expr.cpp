@@ -271,7 +271,7 @@ double Expr::eval(const Env& env) const {
 	auto out = eval_rec<Float>(*this, [&](const std::string& var) {
 		auto it = env.find(var);
 		if (it == env.end()) {
-			throw std::domain_error("undefined variable " + var);
+			throw MathError("undefined variable " + var);
 		}
 		return Float(it->second);
 	});
@@ -282,7 +282,7 @@ double Expr::diff(const std::string& x, const Env& env) const {
 	auto out = eval_rec<Dual>(*this, [&](const std::string& var) {
 		auto it = env.find(var);
 		if (it == env.end()) {
-			throw std::domain_error("undefined variable " + var);
+			throw MathError("undefined variable " + var);
 		}
 		auto v = it->second;
 		if (var == x) {

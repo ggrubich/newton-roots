@@ -1,5 +1,6 @@
 #include "solve.h"
 
+#include "common.h"
 #include "matrix.h"
 
 #include <stdexcept>
@@ -23,7 +24,7 @@ solve(const std::vector<Expr>& funcs, const std::vector<Binding>& init, size_t m
 		});
 		auto jac_inv = jac.inverse();
 		if (!jac_inv) {
-			throw std::runtime_error("division impossible; algorithm stuck at iteration " + std::to_string(k));
+			throw MathError("division impossible; algorithm stuck at iteration " + std::to_string(k));
 		}
 		x = x - (*jac_inv) * y;
 	}

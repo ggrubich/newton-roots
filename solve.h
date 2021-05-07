@@ -9,7 +9,7 @@ using Binding = std::pair<std::string, double>;
 
 // Solves a system of functions using Newton's method, starting with the given
 // initial solution.
-// TODO: definie possible exceptions.
+// Throws MathError on failure.
 std::vector<Binding>
 solve(const std::vector<Expr>& funcs, const std::vector<Binding>& init, size_t max_iters);
 
