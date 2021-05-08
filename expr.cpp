@@ -216,7 +216,7 @@ Dual Dual::pow(Dual y) const {
 		// For constant exponents we use the basic (x^k)' = k * x^(k-1) formula
 		// with an exception for k = 1.
 		if (y.val == 1.0) {
-			out = 1.0;
+			out = x.deriv;
 		}
 		else {
 			out = y.val * epow(x.val, y.val - 1.0) * x.deriv;

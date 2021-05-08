@@ -180,6 +180,13 @@ TEST(ExprTest, DiffPower) {
 	compare_diff(expr, fun, points);
 }
 
+TEST(ExprTest, DiffPowerOne) {
+	auto expr = (4.0*Expr("x") + 1.0).pow(Expr(1.0));
+	double expected = 4.0;
+	double actual = expr.diff("x", {{"x", 3.0}});
+	EXPECT_DOUBLE_EQ(actual, expected) << "d/dx f(x)^1";
+}
+
 TEST(ExprTest, DiffSqrt) {
 	auto expr = (2.0 * Expr("x") * Expr("y")).sqrt();
 	auto fun = [](double x, double y) {
