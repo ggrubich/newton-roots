@@ -1,5 +1,7 @@
 #include "expr.h"
 
+#include "common.h"
+
 #include <cmath>
 
 #include "gtest/gtest.h"
@@ -86,6 +88,20 @@ TEST(ExprTest, EvalPowerSqrt) {
 		{0.0, 98.123},
 	};
 	compare_eval(expr, fun, points);
+}
+
+void expect_eval_throws(Expr expr, const std::string& msg) {
+	EXPECT_THROW(expr.eval({}), MathError) << msg;
+}
+
+TEST(ExprTest, EvalError) {
+	expect_eval_throws(2.0 * Expr("y"), "undefined variable");
+	expect_eval_throws(Expr(1.0) / Expr(0.0), "1/0");
+	expect_eval_throws(Expr(0.0).ln(), "ln 0");
+	expect_eval_throws(Expr(-3.0).ln(), "ln -3");
+	expect_eval_throws(Expr(0.0).pow(Expr(-5.0)), "0^(-5)");
+	expect_eval_throws(Expr(-10.0).pow(Expr(1.2)), "(-10)^1.2");
+	expect_eval_throws(Expr(-1.0).sqrt(), "sqrt(-1)");
 }
 
 void compare_diff(
@@ -177,6 +193,20 @@ TEST(ExprTest, DiffSqrt) {
 		{130.13, 0.13},
 	};
 	compare_diff(expr, fun, points);
+}
+
+void expect_diff_throws(Expr expr, double x, const std::string& msg) {
+	EXPECT_THROW(expr.diff("x", {{"x", x}}), MathError) << msg;
+}
+
+TEST(ExprTest, DiffError) {
+	expect_diff_throws(Expr("x") * Expr("y"), 0.0, "undefined variable");
+	expect_diff_throws(Expr("x") / 0.0, 1.0, "d/dx x/0, x=1");
+	expect_diff_throws(Expr("x").ln(), -1.0, "d/dx ln x, x=-1");
+	expect_diff_throws(Expr("x").pow(0.6), 0.0, "d/dx x^0.6, x=0");  // 0^(-0.4)
+	expect_diff_throws(Expr("x").pow(1.3), -1.0, "d/dx x^1.3, x=-1");  // (-1)^0.3
+	expect_diff_throws(Expr(-1.0).pow(Expr("x")), 1.0, "d/dx (-1)^x, x=1");  // f <= 0
+	expect_diff_throws(Expr("x").sqrt(), 0.0, "d/dx sqrt(x), x=0");
 }
 
 TEST(ExprTest, ParseBinaryPrecedence) {

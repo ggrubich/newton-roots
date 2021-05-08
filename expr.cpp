@@ -2,6 +2,7 @@
 
 #include "common.h"
 
+#include <cfenv>
 #include <cmath>
 #include <functional>
 #include <sstream>
@@ -106,6 +107,32 @@ Expr::Vars Expr::variables() const {
 
 namespace {
 
+template<typename Fun>
+double checked(Fun fun) {
+	std::feclearexcept(FE_ALL_EXCEPT);
+	double y = fun();
+	if (std::fetestexcept(FE_DIVBYZERO | FE_INVALID)) {
+		throw MathError("domain error");
+	}
+	return y;
+}
+
+double ediv(double x, double y) {
+	return checked([=]() { return x / y; });
+}
+
+double epow(double x, double y) {
+	return checked([=]() { return std::pow(x ,y); });
+}
+
+double elog(double x) {
+	return checked([=]() { return std::log(x); });
+}
+
+double esqrt(double x) {
+	return checked([=]() { return std::sqrt(x); });
+}
+
 struct Float {
 	double val;
 
@@ -127,15 +154,15 @@ Float::Float(double val) : val(val) {}
 Float operator+(Float x, Float y) { return Float(x.val + y.val); }
 Float operator-(Float x, Float y) { return Float(x.val - y.val); }
 Float operator*(Float x, Float y) { return Float(x.val * y.val); }
-Float operator/(Float x, Float y) { return Float(x.val / y.val); }
-Float Float::pow(Float y) const { return Float(std::pow(val, y.val)); }
+Float operator/(Float x, Float y) { return Float(ediv(x.val, y.val)); }
+Float Float::pow(Float y) const { return Float(epow(val, y.val)); }
 
 Float operator-(Float x) { return Float(-x.val); }
 Float Float::sin() const { return Float(std::sin(val)); }
 Float Float::cos() const { return Float(std::cos(val)); }
-Float Float::ln() const { return Float(std::log(val)); }
+Float Float::ln() const { return Float(elog(val)); }
 Float Float::exp() const { return Float(std::exp(val)); }
-Float Float::sqrt() const { return Float(std::sqrt(val)); }
+Float Float::sqrt() const { return Float(esqrt(val)); }
 
 // Dual number for forward mode automatic differentiation.
 // It contains a value (val), its derivative (deriv) and a boolean flag (cons)
@@ -177,8 +204,8 @@ Dual operator*(Dual x, Dual y) {
 }
 
 Dual operator/(Dual x, Dual y) {
-	return Dual(x.val / y.val,
-			((x.deriv * y.val) - (x.val * y.deriv)) / (y.val * y.val),
+	return Dual(ediv(x.val, y.val),
+			ediv((x.deriv * y.val) - (x.val * y.deriv), y.val * y.val),
 			x.cons && y.cons);
 }
 
@@ -192,15 +219,15 @@ Dual Dual::pow(Dual y) const {
 			out = 1.0;
 		}
 		else {
-			out = y.val * std::pow(x.val, y.val - 1.0) * x.deriv;
+			out = y.val * epow(x.val, y.val - 1.0) * x.deriv;
 		}
 	}
 	else {
 		// For functional exponents we use the generalized power rule.
-		out = std::pow(x.val, y.val) *
-			(y.deriv * std::log(x.val) + (x.deriv * y.val) / x.val);
+		out = epow(x.val, y.val) *
+			(y.deriv * elog(x.val) + ediv(x.deriv * y.val, x.val));
 	}
-	return Dual(std::pow(x.val, y.val), out, x.cons && y.cons);
+	return Dual(epow(x.val, y.val), out, x.cons && y.cons);
 }
 
 Dual operator-(Dual x) {
@@ -216,7 +243,7 @@ Dual Dual::cos() const {
 }
 
 Dual Dual::ln() const {
-	return Dual(std::log(val), deriv / val, cons);
+	return Dual(elog(val), ediv(deriv, val), cons);
 }
 
 Dual Dual::exp() const {
@@ -224,7 +251,7 @@ Dual Dual::exp() const {
 }
 
 Dual Dual::sqrt() const {
-	return Dual(std::sqrt(val), deriv / (2 * std::sqrt(val)), cons);
+	return Dual(esqrt(val), ediv(deriv, 2 * esqrt(val)), cons);
 }
 
 template<typename Num>
