@@ -325,7 +325,13 @@ double Expr::diff(const std::string& x, const Env& env) const {
 void Expr::show_rec(std::string& buf) const {
 	return std::visit(overloaded {
 		[&](const Const& c) {
+			if (c.val < 0) {
+				buf.append("(");
+			}
 			buf.append(std::to_string(c.val));
+			if (c.val < 0) {
+				buf.append(")");
+			}
 		},
 		[&](const Var& var) {
 			buf.append(*var.name);
@@ -364,8 +370,10 @@ void Expr::show_rec(std::string& buf) const {
 				buf.append(")");
 			}
 			else {
+				buf.append("(");
 				buf.append(op);
 				un.arg->show_rec(buf);
+				buf.append(")");
 			}
 		},
 	}, value);
