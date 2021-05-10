@@ -20,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	ui->setupUi(this);
 	ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui->tableAns->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui->tableEval->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
 
 MainWindow::~MainWindow()
@@ -109,21 +111,23 @@ void MainWindow::on_solveButton_clicked()
 		showError(err);
 		return;
 	}
-	// ui->Iterations->setStyleSheet("font-weight: bold; color: red");
-	// ui->Max_difference->setStyleSheet("font-weight: bold; color: red");
-	// ui->maxDiffAns->setStyleSheet("font-weight: bold; color: red");
-	// ui->iterationsAns->setStyleSheet("font-weight: bold; color: red");
 
-	ui->tableAns->insertRow ( ui->tableAns->rowCount() );
-	ui->tableAns->insertRow ( ui->tableAns->rowCount() );
-	for(unsigned int i = 0; i < solution.vars.size(); i++){
-		ui->tableAns->insertColumn(i);
-		ui->tableAns->setItem(0,i,new QTableWidgetItem(QString::fromStdString(solution.vars[i].first)));
-		ui->tableAns->setItem(1,i, new QTableWidgetItem(QString::number(solution.vars[i].second)));
-	}
-
-	ui->maxDiffAns->setText(QString::number(solution.max_diff));
 	ui->iterationsAns->setText(QString::number(solution.iters));
+	ui->maxDiffAns->setText(QString::number(solution.max_diff));
+	ui->tableAns->setRowCount(0);
+	for (const auto& p : solution.vars) {
+		int i =  ui->tableAns->rowCount();
+		ui->tableAns->insertRow(i);
+		ui->tableAns->setItem(i, 0, new QTableWidgetItem(QString::fromStdString(p.first)));
+		ui->tableAns->setItem(i, 1, new QTableWidgetItem(QString::number(p.second)));
+	}
+	ui->tableEval->setRowCount(0);
+	auto env = Expr::Env(solution.vars.begin(), solution.vars.end());
+	for (const auto& f : funcs) {
+		int i = ui->tableEval->rowCount();
+		ui->tableEval->insertRow(i);
+		ui->tableEval->setItem(i, 0, new QTableWidgetItem(QString::number(f.eval(env))));
+	}
 }
 
 void MainWindow::on_pushButton_clicked()
