@@ -65,6 +65,11 @@ void MainWindow::on_addButton_clicked()
 
 void MainWindow::on_solveButton_clicked()
 {
+	ui->iterationsAns->clear();
+	ui->maxDiffAns->clear();
+	ui->tableAns->setRowCount(0);
+	ui->tableEval->setRowCount(0);
+
     std::vector<Expr> funcs;
     std::vector<Binding> inits;
 
@@ -114,14 +119,12 @@ void MainWindow::on_solveButton_clicked()
 
 	ui->iterationsAns->setText(QString::number(solution.iters));
 	ui->maxDiffAns->setText(QString::number(solution.max_diff));
-	ui->tableAns->setRowCount(0);
 	for (const auto& p : solution.vars) {
 		int i =  ui->tableAns->rowCount();
 		ui->tableAns->insertRow(i);
 		ui->tableAns->setItem(i, 0, new QTableWidgetItem(QString::fromStdString(p.first)));
 		ui->tableAns->setItem(i, 1, new QTableWidgetItem(QString::number(p.second)));
 	}
-	ui->tableEval->setRowCount(0);
 	auto env = Expr::Env(solution.vars.begin(), solution.vars.end());
 	for (const auto& f : funcs) {
 		int i = ui->tableEval->rowCount();
