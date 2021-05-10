@@ -95,8 +95,10 @@ void MainWindow::on_solveButton_clicked()
     struct Constraints constr;
     constr.min_iters = ui->minIterationsSpinBox->value();
     constr.max_iters = ui->maxIterationsSpinBox->value();;
-    constr.abs_epsilon = ui->absSpinBox->value()*pow(10,-16);
-    constr.rel_epsilon = ui->relSpinBox->value()*pow(10,-16);
+    constr.abs_epsilon = ui->absSpinBox->value() *
+		std::pow(10.0, ui->absMagSpinBox->value());
+    constr.rel_epsilon = ui->relSpinBox->value() *
+		std::pow(10.0, ui->relMagSpinBox->value());
 
 	Solution solution;
 	try {

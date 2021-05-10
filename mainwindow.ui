@@ -68,7 +68,7 @@
    <widget class="QSpinBox" name="minIterationsSpinBox">
     <property name="geometry">
      <rect>
-      <x>730</x>
+      <x>720</x>
       <y>170</y>
       <width>91</width>
       <height>31</height>
@@ -91,15 +91,15 @@
      </rect>
     </property>
     <property name="text">
-     <string>Min Iterations</string>
+     <string>Min Iterations:</string>
     </property>
    </widget>
    <widget class="QDoubleSpinBox" name="absSpinBox">
     <property name="geometry">
      <rect>
-      <x>840</x>
+      <x>890</x>
       <y>170</y>
-      <width>91</width>
+      <width>81</width>
       <height>31</height>
      </rect>
     </property>
@@ -110,30 +110,30 @@
      <double>4.000000000000000</double>
     </property>
    </widget>
-   <widget class="QLabel" name="accuracyLabel">
+   <widget class="QLabel" name="absLabel">
     <property name="geometry">
      <rect>
-      <x>950</x>
+      <x>820</x>
       <y>170</y>
-      <width>101</width>
+      <width>71</width>
       <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>abs Epsilon e-16</string>
+     <string>Abs Epsilon:</string>
     </property>
    </widget>
    <widget class="QLabel" name="initiaValueLabel">
     <property name="geometry">
      <rect>
-      <x>640</x>
-      <y>400</y>
-      <width>81</width>
+      <x>630</x>
+      <y>260</y>
+      <width>91</width>
       <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>Initial Guess</string>
+     <string>Initial Guess:</string>
     </property>
     <property name="scaledContents">
      <bool>false</bool>
@@ -155,7 +155,7 @@
    <widget class="QSpinBox" name="maxIterationsSpinBox">
     <property name="geometry">
      <rect>
-      <x>730</x>
+      <x>720</x>
       <y>220</y>
       <width>91</width>
       <height>31</height>
@@ -171,9 +171,9 @@
    <widget class="QDoubleSpinBox" name="relSpinBox">
     <property name="geometry">
      <rect>
-      <x>840</x>
+      <x>890</x>
       <y>220</y>
-      <width>91</width>
+      <width>81</width>
       <height>31</height>
      </rect>
     </property>
@@ -194,28 +194,28 @@
      </rect>
     </property>
     <property name="text">
-     <string>Max Iterations</string>
+     <string>Max Iterations:</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_2">
+   <widget class="QLabel" name="relLabel">
     <property name="geometry">
      <rect>
-      <x>950</x>
+      <x>820</x>
       <y>220</y>
-      <width>101</width>
+      <width>71</width>
       <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>rel Epsilon e-16</string>
+     <string>Rel Epsilon:</string>
     </property>
    </widget>
    <widget class="QTableWidget" name="initialValuesTable">
     <property name="geometry">
      <rect>
-      <x>640</x>
-      <y>270</y>
-      <width>401</width>
+      <x>630</x>
+      <y>300</y>
+      <width>411</width>
       <height>131</height>
      </rect>
     </property>
@@ -286,9 +286,9 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>180</y>
+      <y>170</y>
       <width>111</width>
-      <height>16</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -368,6 +368,64 @@
       <width>231</width>
       <height>181</height>
      </rect>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="absMagSpinBox">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>170</y>
+      <width>49</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>-99</number>
+    </property>
+    <property name="value">
+     <number>-16</number>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="relMagSpinBox">
+    <property name="geometry">
+     <rect>
+      <x>990</x>
+      <y>220</y>
+      <width>49</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>-99</number>
+    </property>
+    <property name="value">
+     <number>-16</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="absMagLabel">
+    <property name="geometry">
+     <rect>
+      <x>980</x>
+      <y>170</y>
+      <width>20</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>e</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="relMagLabel">
+    <property name="geometry">
+     <rect>
+      <x>980</x>
+      <y>220</y>
+      <width>20</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>e</string>
     </property>
    </widget>
   </widget>
