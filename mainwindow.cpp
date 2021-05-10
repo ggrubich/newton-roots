@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
-	ui->tableWidget_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+	ui->tableFuncs->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui->tableAns->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 	ui->tableEval->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 }
@@ -58,9 +58,22 @@ void MainWindow::on_addButton_clicked()
 			ui->initialValuesTable->setItem(0, idx, new QTableWidgetItem(QString::fromStdString(exp)));
 		}
 	}
-    ui->tableWidget_2->insertRow ( ui->tableWidget_2->rowCount() );
-    ui->tableWidget_2->setItem   ( ui->tableWidget_2->rowCount()-1, 0, new QTableWidgetItem(fx));
-    ui->plainTextFunctionEdit->clear();
+	ui->tableFuncs->insertRow(ui->tableFuncs->rowCount());
+	auto item = new QTableWidgetItem(fx);
+	item->setToolTip(QString::fromStdString(expFx.show()));
+	ui->tableFuncs->setItem(ui->tableFuncs->rowCount()-1, 0, item);
+	ui->plainTextFunctionEdit->clear();
+}
+
+void MainWindow::on_tableFuncs_cellChanged(int row, int col) {
+	auto str = ui->tableFuncs->item(row, col)->text().toStdString();
+	try {
+		auto exp = Expr::parse(str);
+		ui->tableFuncs->item(row, col)->setToolTip(QString::fromStdString(exp.show()));
+	}
+	catch (const ParseError& err) {
+		showError(err);
+	}
 }
 
 void MainWindow::on_solveButton_clicked()
@@ -73,8 +86,8 @@ void MainWindow::on_solveButton_clicked()
     std::vector<Expr> funcs;
     std::vector<Binding> inits;
 
-    for(int i = 0; i < ui->tableWidget_2->rowCount(); i++){
-		auto str = ui->tableWidget_2->item(i, 0)->text().toStdString();
+    for(int i = 0; i < ui->tableFuncs->rowCount(); i++){
+		auto str = ui->tableFuncs->item(i, 0)->text().toStdString();
 		try {
 			funcs.push_back(Expr::parse(str));
 		}
@@ -136,7 +149,7 @@ void MainWindow::on_solveButton_clicked()
 void MainWindow::on_pushButton_clicked()
 {
 	ui->initialValuesTable->setColumnCount(0);
-	ui->tableWidget_2->setRowCount(0);
+	ui->tableFuncs->setRowCount(0);
 	ui->iterationsAns->clear();
 	ui->maxDiffAns->clear();
 	ui->tableAns->setRowCount(0);

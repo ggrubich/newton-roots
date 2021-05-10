@@ -50,7 +50,7 @@
      <string>fun =</string>
     </property>
    </widget>
-   <widget class="QTableWidget" name="tableWidget_2">
+   <widget class="QTableWidget" name="tableFuncs">
     <property name="geometry">
      <rect>
       <x>290</x>

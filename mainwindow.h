@@ -19,6 +19,8 @@ public:
 private slots:
     void on_addButton_clicked();
 
+	void on_tableFuncs_cellChanged(int row, int col);
+
     void on_solveButton_clicked();
 
     void on_pushButton_clicked();
