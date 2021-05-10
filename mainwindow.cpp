@@ -153,5 +153,5 @@ void MainWindow::on_pushButton_clicked()
 	ui->iterationsAns->clear();
 	ui->maxDiffAns->clear();
 	ui->tableAns->setRowCount(0);
-	ui->tableAns->setColumnCount(0);
+	ui->tableEval->setRowCount(0);
 }
